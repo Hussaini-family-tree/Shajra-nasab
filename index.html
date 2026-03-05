@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=850">
+    <title>Shajra-e-Nasab Tree Professional</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: #ffffff; text-align: center; margin: 0; padding: 10px 10px 0 10px; display: flex; flex-direction: column; min-height: 100vh; }
+        .main-content { flex: 1; width: 100%; margin: 0 auto; }
+        .header { background: #005b6e; color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; }
+        h1#mainTitle { margin: 0; font-weight: 700; letter-spacing: 1px; cursor: pointer; user-select: none; }
+        .top-controls { position: absolute; right: 20px; top: 20px; display: flex; gap: 10px; align-items: center; }
+        .lang-select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-weight: 600; cursor: pointer; background: #fff; color: #333;}
+        .action-buttons { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+        .action-btn { padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 30px; cursor: pointer; border: none; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.2s; }
+        .btn-search-toggle { background: #df9b58; color: white;} 
+        .btn-add-toggle { background: #2196f3; color: white; } 
+        .hidden-panel { display: none; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); max-width: 450px; margin: 0 auto 25px auto; text-align: left; animation: fadeIn 0.3s ease-in-out;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden-panel h3 { margin-top: 0; color: #005b6e; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;}
+        input[type="text"] { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; transition: border 0.3s; font-size: 16px;}
+        input[type="text"]:focus { border-color: #005b6e; outline: none; }
+        .submit-btn { background-color: #005b6e; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; transition: background 0.3s;}
+        .warning-box { background: #fff3cd; color: #856404; padding: 12px; border-left: 4px solid #f39c12; margin-bottom: 15px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+        .checkbox-label { font-size: 13px; display: flex; align-items: start; gap: 8px; margin-bottom: 15px; cursor: pointer; color: #555; }
+        .admin-panel { display: none; background: #ffffff; padding: 25px; border-radius: 12px; border: 2px solid #a86b6b; max-width: 700px; margin: 0 auto 25px auto; text-align: left; }
+        .pending-item { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #eee;}
+        .btn-approve { background-color: #2196f3; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px; margin-right: 8px; font-weight: 600;} 
+        .btn-reject { background-color: #a86b6b; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 5px; font-weight: 600;}
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: left; }
+        .modal-box h3 { margin-top: 0; color: #005b6e; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 15px; }
+        .tree-wrapper { width: 100%; overflow-x: auto; padding: 20px 30px 50px 30px; background: #ffffff; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); white-space: nowrap; margin-bottom: 40px; min-height: 450px; border: 1px solid #eee; display: block; direction: ltr !important; }
+        
+        /* 🔥 YAHAN WOH JADOO HAI JISSE LEFT/RIGHT KE NAAM NAHI KATENGE 🔥 */
+        .tree ul { padding-top: 20px; position: relative; transition: all 0.5s; text-align: center; display: flex; justify-content: center; direction: ltr !important; flex-direction: row !important; width: max-content; margin: 0 auto;}
+        
+        .tree li { display: inline-block; text-align: center; list-style-type: none; position: relative; padding: 30px 10px 0 10px; vertical-align: top; direction: ltr !important;}
+        .tree li::before, .tree li::after { content: ''; position: absolute; top: 0; right: 50%; border-top: 2px solid #ccc; width: 50%; height: 30px; }
+        .tree li::after { right: auto; left: 50%; border-left: 2px solid #ccc; }
+        .tree li:only-child::after, .tree li:only-child::before { display: none; }
+        .tree li:only-child { padding-top: 0; }
+        .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
+        .tree li:last-child::before { border-right: 2px solid #ccc; border-radius: 0 10px 0 0; }
+        .tree li:first-child::after { border-radius: 10px 0 0 0; }
+        .tree ul ul::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 2px solid #ccc; width: 0; height: 30px; }
+        .name-box { padding: 12px 20px; text-decoration: none; font-weight: 700; display: inline-block; border-radius: 8px; transition: all 0.5s ease-in-out; box-shadow: 0 4px 8px rgba(0,0,0,0.1); font-size: 20px; letter-spacing: 0.5px; text-shadow: 0px 1px 3px rgba(0,0,0,0.3); direction: auto; }
+        .admin-controls { display: block; margin-top: 8px; }
+        .admin-controls button { padding: 4px 10px; font-size: 12px; margin: 0 3px; cursor: pointer; border: none; border-radius: 20px; color: white; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
+        .edit-btn { background-color: #df9b58; color: white; } 
+        .del-btn { background-color: #a86b6b; color: white; }
+        .root-node { background-color: #005b6e; color: white; border: 2px solid #00404d; } 
+        .branch-asad { background-color: #00897b; color: white; border: 2px solid #00695f; } 
+        .branch-zainuddin { background-color: #a86b6b; color: white; border: 2px solid #8a5656; } 
+        .branch-bhaglu { background-color: #1565c0; color: white; border: 2px solid #0d47a1; } 
+        .highlight-zoom { box-shadow: 0px 0px 25px 15px #ffd700 !important; transform: scale(1.5) !important; z-index: 100; position: relative; color: #111 !important; background: #fff !important; border: 3px solid #ffd700; cursor: pointer; text-shadow: none;}
+        .custom-footer { background: #005b6e; color: white; padding: 20px 10px; font-size: 15px; letter-spacing: 0.5px; border-top-left-radius: 12px; border-top-right-radius: 12px; margin-top: auto; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); width: 100%;}
+        .custom-footer a { color: #ffe0b0; text-decoration: none; font-weight: 700; display: inline-block; margin-top: 5px; }
+    </style>
+</head>
+<body>
+<div class="modal-overlay" id="editModalOverlay">
+    <div class="modal-box" dir="ltr">
+        <h3>✏️ Edit Name</h3>
+        <input type="hidden" id="editIdField">
+        <label style="font-size: 13px; color: #666;">Is naam ko badal kar naya naam likhein:</label>
+        <input type="text" id="editNameInput" style="margin-top: 5px;" dir="auto">
+        <div class="modal-btns">
+            <button class="submit-btn" onclick="saveEditAction()" style="background: #2196f3; flex: 1;">Save ✓</button>
+            <button class="submit-btn" onclick="closeEditModal()" style="background: #a86b6b; flex: 1;">Cancel ✕</button>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="header" id="mainHeader">
+        <h1 id="mainTitle" onclick="secretAdminLogin()">Shajra-e-Nasab</h1>
+        <div class="top-controls">
+            <select class="lang-select" id="langSelector" onchange="changeLanguage()">
+                <option value="en">English</option><option value="hi">हिन्दी</option><option value="ur">اردو</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="action-buttons" id="mainButtons">
+        <button id="btnSearchToggle" class="action-btn btn-search-toggle" onclick="togglePanel('searchPanel')">🔍 Search Your Name</button>
+        <button id="btnAddToggle" class="action-btn btn-add-toggle" onclick="togglePanel('addPanel')">➕ Add Your Name</button>
+    </div>
+
+        <div class="hidden-panel" id="searchPanel" dir="auto">
+        <h3 id="searchTitle">🔍 Find a Name</h3>
+        
+        <label style="font-size: 13px; color: #666; font-weight: 600;">Jisko dhoondhna hai, unka naam:</label>
+        <input type="text" id="searchInput" placeholder="Sirf beta ka naam likhein">
+        
+        <label style="font-size: 13px; color: #666; margin-top: 10px; display: block; font-weight: 600;">Unke Pita (Father) ka naam:</label>
+        <input type="text" id="searchFatherInput" placeholder="Sirf Pita ka naam likhein">
+        
+        <button id="btnSubmitSearch" class="submit-btn" onclick="searchMember()" style="background: #df9b58; color: white; margin-top: 15px;">Search</button>
+    </div>
+
+
+    <div class="hidden-panel" id="searchPanel" dir="auto">
+        <h3 id="searchTitle">🔍 Find a Name</h3>
+        <input type="text" id="searchInput" placeholder="Kiska naam dhoondhna hai?">
+        <input type="text" id="searchFatherInput" placeholder="Unke Pita (Father) ka naam">
+        <button id="btnSubmitSearch" class="submit-btn" onclick="searchMember()" style="background: #df9b58; color: white;">Search</button>
+    </div>
+
+    <div class="hidden-panel" id="addPanel" dir="auto">
+        <h3 id="reqTitle">📩 Request to Add Name</h3>
+        <div id="reqWarning" class="warning-box">⚠️ Hidayat: Hamesha pehle BADE bhai ka naam jodein.</div>
+        <input type="text" id="reqName" placeholder="Your Name">
+        <input type="text" id="reqFather" placeholder="Father's Name">
+        <input type="text" id="reqGrandFather" placeholder="Grandfather's Name (Dada)">
+        <label class="checkbox-label"><input type="checkbox" id="ageConfirm"><span id="reqCheckboxText">Main tasdeeq karta hoon ki bade bhai ka naam pehle se juda hai.</span></label>
+        <button id="btnSubmitReq" class="submit-btn" onclick="submitRequest()" style="background: #2196f3; color: white;">Send Request</button>
+    </div>
+
+    <div class="admin-panel" id="adminDashboard" dir="auto">
+        <h3 id="adminTitle" style="color: #a86b6b; margin-top: 0;">👑 Admin Dashboard</h3>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
+            <h4 id="directAddTitle" style="margin-top:0; color: #005b6e;">Directly Add Name</h4>
+            <input type="text" id="adminName" placeholder="Naya Naam">
+            <input type="text" id="adminFather" placeholder="Pita Ka Naam">
+            <input type="text" id="adminGrandFather" placeholder="Dada Ka Naam">
+            <button id="btnAdminAdd" class="submit-btn" onclick="adminDirectAdd()" style="width: auto; background: #005b6e;">Add Now</button>
+        </div>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+            <h4 id="pendingTitle" style="margin-top:0; color: #005b6e;">🔔 Pending Requests</h4>
+            <div id="pendingList"><p style="font-size: 13px; color: gray;" id="noPending">No new messages.</p></div>
+        </div>
+    </div>
+
+
+    <div class="admin-panel" id="adminDashboard" dir="auto">
+        <h3 id="adminTitle" style="color: #a86b6b; margin-top: 0;">👑 Admin Dashboard</h3>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
+            <h4 id="directAddTitle" style="margin-top:0; color: #005b6e;">Directly Add Name</h4>
+            <input type="text" id="adminName" placeholder="Naya Naam">
+            <input type="text" id="adminFather" placeholder="Pita Ka Naam">
+            <button id="btnAdminAdd" class="submit-btn" onclick="adminDirectAdd()" style="width: auto; background: #005b6e;">Add Now</button>
+        </div>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+            <h4 id="pendingTitle" style="margin-top:0; color: #005b6e;">🔔 Pending Requests</h4>
+            <div id="pendingList"><p style="font-size: 13px; color: gray;" id="noPending">No new messages.</p></div>
+        </div>
+    </div>
+<div style="text-align: center; margin-bottom: 10px; margin-top: 10px;" dir="ltr">
+    <button class="action-btn" onclick="zoomTree(0.2)" style="background: #c5a0ca; padding: 9px 17px;color: black; font-size: 17px;">➕ Zoom In</button>
+    <button class="action-btn" onclick="zoomTree(-0.2)" style="background:#a1dae1; padding: 9px 17px;color: black; font-size: 16px;">➖ Zoom Out</button>
+    
+</div>
+
+
+    <div class="tree-wrapper"><div class="tree" id="treeDisplay"></div></div>
+</div>
+
+<div class="custom-footer" dir="auto">
+    <span id="footerText">© 2026 Shajra-e-Nasab Pro | Developed by Md Arman</span><br>
+    <a href="tel:+918581085862">📞 +91 8581085862</a>
+</div>
+<script>
+    /* 🔥 AAPKE FIREBASE KI CHAABIYAN 🔥 */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzIybYuTGZ1hzRuW_Twr3FRdLQws2yvPE",
+      authDomain: "shajra-nasab.firebaseapp.com",
+      databaseURL: "https://shajra-nasab-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "shajra-nasab",
+      storageBucket: "shajra-nasab.firebasestorage.app",
+      messagingSenderId: "274477295815",
+      appId: "1:274477295815:web:22293a2f76a1d75a0a76e2"
+    };
+
+    // Firebase chalu karo
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const defaultFamily=[{id:"husaini",name:"Husaini",parent:null,color:"root-nood"},{id:"bhaglu",name:"Bhaglu",parent:"husaini",color:"branch-bhaglu"},{id:"asadali",name:"Asad Ali",parent:"husaini",color:"branch-asad"},{id:"zainuddin",name:"Zainuddin",parent:"husaini",color:"branch-zainuddin"}];
+    const defaultDict={"husaini":{en:"Husaini",hi:"हुसैनी",ur:"حسینی"},"asad ali":{en:"Asad Ali",hi:"असद अली",ur:"اسد علی"},"zainuddin":{en:"Zainuddin",hi:"जैनुद्दीन",ur:"زین الدین"},"bhaglu":{en:"Bhaglu",hi:"भगलू",ur:"بھگلو"}};
+    
+    let family = defaultFamily;
+    let nameDictionary = defaultDict;
+    let pendingRequests = [];
+    let isAdmin = false;
+    
+    // Internet (Firebase) se Data laane ka system
+    db.ref('shajra/family').on('value', (snapshot) => {
+        if(snapshot.exists()) { family = snapshot.val(); renderTree(); }
+        else { saveData(); } // Pehli baar khali ho toh 4 naam daal do
+    });
+
+    db.ref('shajra/dictionary').on('value', (snapshot) => {
+        if(snapshot.exists()) { nameDictionary = snapshot.val(); renderTree(); }
+    });
+
+    db.ref('shajra/pendingRequests').on('value', (snapshot) => {
+        if(snapshot.exists()) { pendingRequests = snapshot.val(); }
+        else { pendingRequests = []; }
+        if(isAdmin) showPendingRequests();
+    });
+
+    // Data internet par save karne ka system
+    function saveData() {
+        db.ref('shajra/family').set(family);
+        db.ref('shajra/dictionary').set(nameDictionary);
+        db.ref('shajra/pendingRequests').set(pendingRequests);
+    }
+    
+    async function fetchTranslation(text){let t={en:text,hi:text,ur:text};try{let r=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=hi&dt=t&q=${encodeURIComponent(text)}`);let d=await r.json();t.hi=d[0][0][0];r=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ur&dt=t&q=${encodeURIComponent(text)}`);d=await r.json();t.ur=d[0][0][0];}catch(e){}return t;}
+    function getTranslatedName(orig){let l=document.getElementById("langSelector").value;let k=orig.toLowerCase().trim();return(nameDictionary[k]&&nameDictionary[k][l])?nameDictionary[k][l]:orig;}
+    
+    const i18n={en:{mainTitle:"Shajra-e-Nasab",btnSearchToggle:"🔍 Search Your Name",btnAddToggle:"➕ Add Your Name",searchTitle:"🔍 Find a Name",searchInput:"Who are you looking for?",btnSubmitSearch:"Search",reqTitle:"📩 Request to Add Name",reqName:"Your Name",reqFather:"Father's Name",btnSubmitReq:"Send Request",adminTitle:"👑 Admin Dashboard",directAddTitle:"Directly Add Name",adminName:"New Name",adminFather:"Father's Name",btnAdminAdd:"Add Now",pendingTitle:"🔔 Pending Requests",noPending:"No new messages.",reqWarning:"⚠️ Note: Add OLDER brother first, then YOUNGER.",reqCheckboxText:"I confirm older brother is added.",footerText:"© 2026 Shajra-e-Nasab Pro | Developed by <b>Md Arman</b>",dir:"ltr"},hi:{mainTitle:"शजरा-ए-नसब",btnSearchToggle:"🔍 अपना नाम खोजें",btnAddToggle:"➕ अपना नाम जोड़ें",searchTitle:"🔍 नाम खोजें",searchInput:"आप किसे ढूंढ रहे हैं?",btnSubmitSearch:"खोजें",reqTitle:"📩 नाम जोड़ने का अनुरोध",reqName:"आपका नाम",reqFather:"पिता का नाम",btnSubmitReq:"अनुरोध भेजें",adminTitle:"👑 एडमिन डैशबोर्ड",directAddTitle:"तुरंत नाम जोड़ें",adminName:"नया नाम",adminFather:"पिता का नाम",btnAdminAdd:"जोड़ें",pendingTitle:"🔔 आए हुए अनुरोध",noPending:"कोई नया मैसेज नहीं है।",reqWarning:"⚠️ चेतावनी: हमेशा पहले बड़े भाई का नाम जोड़ें।",reqCheckboxText:"मैं पुष्टि करता हूँ कि बड़े भाई का नाम जुड़ा है।",footerText:"© 2026 शजरा-ए-नसब प्रो | निर्माता: <b>मो. अरमान</b>",dir:"ltr"},ur:{mainTitle:"شجرہ نسب",btnSearchToggle:"🔍 اپنا نام تلاش کریں",btnAddToggle:"➕ اپنا نام شامل کریں",searchTitle:"🔍 نام تلاش کریں",searchInput:"آپ کس کا نام تلاش کر رہے ہیں؟",btnSubmitSearch:"تلاش کریں",reqTitle:"📩 نام شامل کرنے کی درخواست",reqName:"آپ کا نام",reqFather:"والد کا نام",btnSubmitReq:"درخواست بھیجیں",adminTitle:"👑 ایڈمن ڈیش بورڈ",directAddTitle:"براہ راست نام شامل کریں",adminName:"نیا نام",adminFather:"والد کا نام",btnAdminAdd:"شامل کریں",pendingTitle:"🔔 زیر التوا درخواستیں",noPending:"کوئی نیا پیغام نہیں ہے۔",reqWarning:"⚠️ ہدایت: ہمیشہ پہلے بڑے بھائی کا نام جوڑیں۔",reqCheckboxText:"میں تصدیق کرتا ہوں کہ بڑے بھائی کا نام جڑا ہے۔",footerText:"© 2026 شجرہ نسب پرو | تخلیق کار: <b>محمد ارمان</b>",dir:"rtl"}};
+    
+    function changeLanguage(){
+        let l=document.getElementById("langSelector").value; let t=i18n[l];
+        document.getElementById("mainHeader").dir=t.dir; document.getElementById("mainTitle").innerHTML=t.mainTitle;
+        document.getElementById("btnSearchToggle").innerHTML=t.btnSearchToggle; document.getElementById("btnAddToggle").innerHTML=t.btnAddToggle;
+        document.getElementById("searchTitle").innerHTML=t.searchTitle; document.getElementById("searchInput").placeholder=t.searchInput;
+        document.getElementById("btnSubmitSearch").innerHTML=t.btnSubmitSearch; document.getElementById("reqTitle").innerHTML=t.reqTitle;
+        document.getElementById("reqName").placeholder=t.reqName; document.getElementById("reqFather").placeholder=t.reqFather;
+        document.getElementById("btnSubmitReq").innerHTML=t.btnSubmitReq; document.getElementById("adminTitle").innerHTML=t.adminTitle;
+        document.getElementById("directAddTitle").innerHTML=t.directAddTitle; document.getElementById("adminName").placeholder=t.adminName;
+        document.getElementById("adminFather").placeholder=t.adminFather; document.getElementById("btnAdminAdd").innerHTML=t.btnAdminAdd;
+        document.getElementById("pendingTitle").innerHTML=t.pendingTitle; 
+        if(document.getElementById("noPending")) document.getElementById("noPending").innerHTML=t.noPending;
+        document.getElementById("reqWarning").innerHTML=t.reqWarning; document.getElementById("reqCheckboxText").innerHTML=t.reqCheckboxText;
+        document.getElementById("footerText").innerHTML=t.footerText;
+        renderTree();
+    }
+    
+    function togglePanel(id){let p=document.getElementById(id);let o=(p.style.display==="block");document.getElementById('searchPanel').style.display="none";document.getElementById('addPanel').style.display="none";if(!o)p.style.display="block";}
+    let sClk=0,sTmr;function secretAdminLogin(){sClk++;clearTimeout(sTmr);if(sClk===3){sClk=0;if(isAdmin){isAdmin=false;document.getElementById("adminDashboard").style.display="none";alert("Logout!");renderTree();return;}if(prompt("Password:")==="786"){isAdmin=true;alert("Welcome Admin!");document.getElementById("adminDashboard").style.display="block";showPendingRequests();renderTree();}}else{sTmr=setTimeout(()=>sClk=0,1000);}}
+    
+    function removeZoom(element) { element.classList.remove('highlight-zoom'); }
+        // 🔥 NAYA SMART SEARCH LOGIC (Spelling Mistakes theek karne ke liye) 🔥
+    function isMatch(dbName, searchInput) {
+        if (!dbName || !searchInput) return false;
+        let dbClean = dbName.toLowerCase();
+        let sClean = searchInput.toLowerCase().trim();
+        
+        // 1. Agar naam ka koi hissa mil jaye (jaise "Zaheer Munna" -> "Zaheer Muhammad Munna" mein mil jaye)
+        let searchParts = sClean.split(/\s+/);
+        let allWordsMatch = searchParts.every(part => dbClean.includes(part));
+        if (allWordsMatch) return true;
+        
+        // 2. Agar spelling thodi galat ho (Zahir ki jagah Zaheer, Shameem ki jagah Shamim)
+        let dbFuzzy = dbClean.replace(/[^a-z0-9]/g, '').replace(/[aeiou]/g, '');
+        let sFuzzy = sClean.replace(/[^a-z0-9]/g, '').replace(/[aeiou]/g, '');
+        if (sFuzzy.length >= 2 && dbFuzzy.includes(sFuzzy)) return true;
+        
+        return false;
+    }
+
+    function searchMember() {
+        let sNameRaw = document.getElementById("searchInput").value;
+        let sFatherRaw = document.getElementById("searchFatherInput").value;
+        
+        let allBoxes = document.querySelectorAll('.name-box');
+        allBoxes.forEach(box => box.classList.remove('highlight-zoom'));
+        
+        if (sNameRaw.trim() === "" || sFatherRaw.trim() === "") { 
+            alert("Naam aur unke Pita ka naam, dono alag-alag dabbe mein likhna zaroori hai!"); 
+            return; 
+        }
+
+        let foundNode = family.find(x => {
+            if(!x || !x.parent) return false; // Khali jagah ya root ko chhodo
+            
+            // Beta ka naam milao (Smart tareeqe se)
+            let nMatch = isMatch(x.name, sNameRaw);
+            if(!nMatch && nameDictionary[x.name.toLowerCase().trim()]) {
+                nMatch = isMatch(nameDictionary[x.name.toLowerCase().trim()].hi, sNameRaw) || 
+                         isMatch(nameDictionary[x.name.toLowerCase().trim()].ur, sNameRaw);
+            }
+            if(!nMatch) return false;
+
+            // Pita ka naam milao (Smart tareeqe se)
+            let pNode = family.find(p => p.id === x.parent);
+            if(!pNode) return false;
+            
+            let fMatch = isMatch(pNode.name, sFatherRaw);
+            if(!fMatch && nameDictionary[pNode.name.toLowerCase().trim()]) {
+                fMatch = isMatch(nameDictionary[pNode.name.toLowerCase().trim()].hi, sFatherRaw) || 
+                         isMatch(nameDictionary[pNode.name.toLowerCase().trim()].ur, sFatherRaw);
+            }
+            
+            return fMatch;
+        });
+
+        if (!foundNode) { 
+            alert("Naam aur Pita ka sahi joda nakshe mein nahi mila! Kripya naam check karein."); 
+        } else { 
+            document.getElementById('searchPanel').style.display = "none"; 
+            let targetBox = document.getElementById(`node-${foundNode.id}`);
+            
+            if(targetBox) {
+                targetBox.classList.add('highlight-zoom');
+                
+                // Nakshe ko bada karke theek screen ke beech mein lana
+                resetZoom(); // Zoom ko normal karta hai
+                
+                setTimeout(() => {
+                    let wrapper = document.querySelector('.tree-wrapper');
+                    let tRect = targetBox.getBoundingClientRect();
+                    let wRect = wrapper.getBoundingClientRect();
+                    
+                    // Manually screen ke beecho-beech scroll karna (Har mobile mein chalega)
+                    let sLeft = wrapper.scrollLeft + (tRect.left - wRect.left) - (wRect.width / 2) + (tRect.width / 2);
+                    let sTop = wrapper.scrollTop + (tRect.top - wRect.top) - (wRect.height / 2) + (tRect.height / 2);
+                    
+                    wrapper.scrollTo({ left: sLeft, top: sTop, behavior: 'smooth' });
+                }, 300);
+            }
+        }
+    }
+
+
+        function submitRequest(){
+        let n = document.getElementById("reqName").value.trim();
+        let f = document.getElementById("reqFather").value.trim();
+        let gf = document.getElementById("reqGrandFather").value.trim();
+        let c = document.getElementById("ageConfirm").checked;
+        
+        if(!n || !f || !gf){alert("Naam, Pita aur Dada, teeno ka naam likhna zaroori hai!"); return;}
+        if(!c){alert("Check the box!"); return;}
+        
+        // Pita aur Dada ka sahi relation check
+        let possFathers = family.filter(x => x && (x.name.toLowerCase()===f.toLowerCase() || getTranslatedName(x.name).toLowerCase()===f.toLowerCase()));
+        let p = possFathers.find(fatherNode => {
+            if(!fatherNode.parent) return false;
+            let dNode = family.find(d => d.id === fatherNode.parent);
+            if(!dNode) return false;
+            return dNode.name.toLowerCase()===gf.toLowerCase() || getTranslatedName(dNode.name).toLowerCase()===gf.toLowerCase();
+        });
+
+        if(!p){alert("Pita aur Dada ka sahi joda nahi mila!"); return;}
+        
+        // Firebase Safe List Banayein
+        let safeRequests = Array.isArray(pendingRequests) ? pendingRequests : Object.values(pendingRequests || {});
+        safeRequests = safeRequests.filter(x => x != null);
+        
+        safeRequests.push({name:n, father:p.name, color:p.color, parentId:p.id});
+        pendingRequests = safeRequests; // Nayi list set karein
+        saveData(); // Internet par bhejein
+        
+        document.getElementById("reqName").value=""; document.getElementById("reqFather").value=""; document.getElementById("reqGrandFather").value="";
+        document.getElementById("ageConfirm").checked=false; togglePanel('addPanel'); 
+        alert("Request Sent! Admin isey jald hi add karenge.");
+        
+        if(isAdmin) showPendingRequests();
+    }
+
+    function showPendingRequests(){
+        let d = document.getElementById("pendingList");
+        let lang = document.getElementById("langSelector").value;
+        
+        // Firebase Safe List Padhna
+        let safeRequests = [];
+        if(pendingRequests) {
+            safeRequests = Array.isArray(pendingRequests) ? pendingRequests : Object.values(pendingRequests);
+        }
+        safeRequests = safeRequests.filter(x => x != null);
+
+        if(safeRequests.length === 0){
+            d.innerHTML = `<p style='font-size:13px;color:gray;' id='noPending'>${i18n[lang].noPending}</p>`;
+            return;
+        }
+        
+        let h = "";
+        safeRequests.forEach((r, i) => {
+            if(r && r.name) {
+                h += `<div class="pending-item" style="border-left: 4px solid #df9b58; padding-left: 10px;">
+                <strong style="font-size: 16px;">${r.name}</strong><br>
+                <span style="font-size: 13px; color: #555;">(Pita: ${r.father})</span><br><br>
+                <button class="btn-approve" onclick="approveRequest(${i})">✔ Add</button> 
+                <button class="btn-reject" onclick="rejectRequest(${i})">✖ Reject</button></div>`;
+            }
+        });
+        d.innerHTML = h;
+    }
+
+    async function approveRequest(i){
+        let safeRequests = Array.isArray(pendingRequests) ? pendingRequests : Object.values(pendingRequests || {});
+        safeRequests = safeRequests.filter(x => x != null);
+        
+        let r = safeRequests[i];
+        if(!r) return;
+
+        let nid = r.name.toLowerCase().replace(/\s/g,'') + Math.floor(Math.random()*1000);
+        family.push({id: nid, name: r.name, parent: r.parentId, color: r.color});
+        
+        safeRequests.splice(i, 1); // List se delete karo
+        pendingRequests = safeRequests;
+        saveData(); // Naya naksha aur list save karo
+        
+        let t = await fetchTranslation(r.name);
+        nameDictionary[r.name.toLowerCase().trim()] = t;
+        saveData();
+    }
+
+    function rejectRequest(i){
+        let safeRequests = Array.isArray(pendingRequests) ? pendingRequests : Object.values(pendingRequests || {});
+        safeRequests = safeRequests.filter(x => x != null);
+        
+        safeRequests.splice(i, 1);
+        pendingRequests = safeRequests;
+        saveData();
+    }
+
+    async function adminDirectAdd(){
+        let n = document.getElementById("adminName").value.trim();
+        let f = document.getElementById("adminFather").value.trim();
+        let gf = document.getElementById("adminGrandFather").value.trim();
+        
+        if(!n || !f || !gf){alert("Naam, Pita aur Dada teeno likhein!"); return;}
+        
+        let possFathers = family.filter(x => x && (x.name.toLowerCase()===f.toLowerCase() || getTranslatedName(x.name).toLowerCase()===f.toLowerCase()));
+        let p = possFathers.find(fatherNode => {
+            if(!fatherNode.parent) return false;
+            let dNode = family.find(d => d.id === fatherNode.parent);
+            if(!dNode) return false;
+            return dNode.name.toLowerCase()===gf.toLowerCase() || getTranslatedName(dNode.name).toLowerCase()===gf.toLowerCase();
+        });
+
+        if(!p){alert("Pita aur Dada ka sahi joda nahi mila!"); return;}
+        
+        let nid = n.toLowerCase().replace(/\s/g,'')+Math.floor(Math.random()*1000);
+        family.push({id:nid, name:n, parent:p.id, color:p.color});
+        saveData();
+        document.getElementById("adminName").value=""; document.getElementById("adminFather").value=""; document.getElementById("adminGrandFather").value="";
+        let t = await fetchTranslation(n);
+        nameDictionary[n.toLowerCase().trim()]=t; saveData();
+    }
+
+    
+    function openEditModal(id){let m=family.find(x=>x.id===id);let currentDisplayName=getTranslatedName(m.name);document.getElementById('editIdField').value=id;document.getElementById('editNameInput').value=currentDisplayName;document.getElementById('editModalOverlay').style.display='flex';}
+    function closeEditModal(){document.getElementById('editModalOverlay').style.display='none';}
+    async function saveEditAction(){let id=document.getElementById('editIdField').value,nn=document.getElementById('editNameInput').value.trim(),l=document.getElementById("langSelector").value,m=family.find(x=>x.id===id);let currentDisplayName=getTranslatedName(m.name);if(nn!==""&&nn!==currentDisplayName){let k=m.name.toLowerCase().trim();if(!nameDictionary[k]){nameDictionary[k]={en:m.name,hi:m.name,ur:m.name};}if(l==='en'){m.name=nn;saveData();let t=await fetchTranslation(nn);nameDictionary[nn.toLowerCase().trim()]=t;saveData();}else{nameDictionary[k][l]=nn;saveData();}}closeEditModal();}
+    function deleteMember(id){if(id==="husaini")return;if(confirm("Delete karna hai?")){let getC=(pid)=>{let c=family.filter(x=>x.parent===pid);let i=c.map(x=>x.id);c.forEach(x=>i=i.concat(getC(x.id)));return i;};let ids=[id].concat(getC(id));family=family.filter(x=>!ids.includes(x.id));saveData();}}
+    
+    function renderTree(){
+        if(!family) return;
+        family = family.filter(x => x != null); 
+        let root = family.find(x => !x.parent); 
+        if(!root) root = family[0]; 
+
+        let displayRootName = getTranslatedName(root.name);
+        let adminBtns = isAdmin ? `<div class="admin-controls"><button class="edit-btn" onclick="openEditModal('${root.id}')">✏️</button></div>` : "";
+        // Isme id="node-${root.id}" joda gaya hai
+        document.getElementById("treeDisplay").innerHTML=`<ul><li><div id="node-${root.id}" class="name-box ${root.color}" dir="auto" onclick="removeZoom(this)">${displayRootName}</div>${adminBtns}${buildBranches(root.id)}</li></ul>`;
+    }
+
+    function buildBranches(pid){
+        let children = family.filter(x => x && x.parent === pid); 
+        if(children.length===0) return"";
+        
+        let lang = document.getElementById("langSelector").value;
+        if(lang === 'ur') { children = [...children].reverse(); }
+
+        let h="<ul>";
+        children.forEach(x=>{
+            let displayChildName = getTranslatedName(x.name);
+            let adminBtns = isAdmin ? `<div class="admin-controls"><button class="edit-btn" onclick="openEditModal('${x.id}')">✏️</button> <button class="del-btn" onclick="deleteMember('${x.id}')">🗑️</button></div>` : "";
+            // Isme id="node-${x.id}" joda gaya hai
+            h+=`<li><div id="node-${x.id}" class="name-box ${x.color}" dir="auto" onclick="removeZoom(this)">${displayChildName}</div>${adminBtns}${buildBranches(x.id)}</li>`; 
+        });
+        return h+"</ul>";
+    }
+
+    
+    changeLanguage();
+    
+        // === Zoom Feature Logic ===
+    let currentZoom = 0.5; // 0.5 ka matlab hai tree shuru mein chhota (thumbnail jaisa) dikhega
+    
+    function zoomTree(step) {
+        currentZoom += step;
+        if(currentZoom < 0.2) currentZoom = 0.2; // Zyada chhota na ho
+        if(currentZoom > 2.5) currentZoom = 2.5; // Zyada bada na ho
+        
+        let treeDiv = document.getElementById("treeDisplay");
+        treeDiv.style.transform = `scale(${currentZoom})`;
+        treeDiv.style.transformOrigin = "top center";
+    }
+    
+    function resetZoom() {
+        currentZoom = 0.5; // Reset karne par wapas thumbnail ban jayega
+        let treeDiv = document.getElementById("treeDisplay");
+        treeDiv.style.transform = `scale(${currentZoom})`;
+        treeDiv.style.transformOrigin = "top center";
+    }
+    
+    // Page load hote hi automatically tree ko thumbnail view mein set kar dega
+    setTimeout(resetZoom, 100);
+</script>
+</body>
+</html>
